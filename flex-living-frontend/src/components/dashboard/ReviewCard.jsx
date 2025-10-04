@@ -9,11 +9,15 @@ function ReviewCard({ review, onToggleApproval, isUpdating }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isTogglingApproval, setIsTogglingApproval] = useState(false);
 
-    // Calculate average rating from review categories
-    const averageRating = review.reviewCategory?.length
+    // Calculate average rating - use pre-calculated or calculate from categories
+    const averageRating = review.averageCategoryRating || 
+    (review.reviewCategories?.length
+        ? review.reviewCategories.reduce((sum, cat) => sum + (cat.rating || 0), 0) /
+        review.reviewCategories.length
+        : review.reviewCategory?.length
         ? review.reviewCategory.reduce((sum, cat) => sum + (cat.rating || 0), 0) /
         review.reviewCategory.length
-        : 0;
+        : 0);
 
     const displayRating = formatRating(averageRating);
 
