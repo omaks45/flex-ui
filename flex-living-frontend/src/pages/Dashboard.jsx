@@ -14,25 +14,32 @@ function Dashboard() {
     const [currentPage, setCurrentPage] = useState(1);
     const REVIEWS_PER_PAGE = 10;
 
-   // REPLACE WITH THIS:
     const { data: reviewsData, isLoading, isError, error } = useReviews();
 
-    // Handle your API response structure
+   // Handle your API response structure
     let reviews = [];
     if (reviewsData) {
-    if (Array.isArray(reviewsData)) {
-        reviews = reviewsData;
-    } else if (reviewsData.reviews && Array.isArray(reviewsData.reviews)) {
-        // Your API structure: { status, count, reviews: [...] }
-        reviews = reviewsData.reviews;
-    } else if (reviewsData.result && Array.isArray(reviewsData.result)) {
-        reviews = reviewsData.result;
-    } else if (reviewsData.data && Array.isArray(reviewsData.data)) {
-        reviews = reviewsData.data;
-    }
+        if (Array.isArray(reviewsData)) {
+            reviews = reviewsData;
+        } else if (reviewsData.reviews && Array.isArray(reviewsData.reviews)) {
+            reviews = reviewsData.reviews;
+        } else if (reviewsData.result && Array.isArray(reviewsData.result)) {
+            reviews = reviewsData.result;
+        } else if (reviewsData.data && Array.isArray(reviewsData.data)) {
+            reviews = reviewsData.data;
+        }
     }
 
     console.log('Reviews loaded:', reviews.length);
+    console.log('Raw API response:', reviewsData);
+    if (reviews.length > 0) {
+        console.log('First review full object:', reviews[0]);
+        console.log('All review IDs:', reviews.map(r => ({
+            _id: r._id,
+            id: r.id,
+            hostawayId: r.hostawayId
+        })));
+    }
 
     // Update review status mutation
     const updateReviewStatus = useUpdateReviewStatus();
@@ -63,9 +70,19 @@ function Dashboard() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentPage]);
 
-    // Handle approval toggle
-    const handleToggleApproval = async (reviewId, displayOnWebsite) => {
-        await updateReviewStatus.mutateAsync({ reviewId, displayOnWebsite });
+   // Handle approval toggle
+    const handleToggleApproval = async (reviewId, shouldApprove) => {
+    console.log('=== Approval Debug ===');
+    console.log('Review ID:', reviewId);
+    console.log('Should Approve:', shouldApprove);
+    console.log('Full API URL:', `${import.meta.env.VITE_API_URL}/api/reviews/${reviewId}/approve`);
+    
+    try {
+        await updateReviewStatus.mutateAsync({ reviewId, shouldApprove });
+    } catch (error) {
+        console.error('Failed to toggle approval:', error);
+        console.error('Error response:', error.response?.data);
+    }
     };
 
     return (

@@ -1,22 +1,48 @@
 import { useState } from 'react';
-import { Star, MapPin, Calendar, User, ExternalLink } from 'lucide-react';
+import { Star, MapPin, Calendar, ExternalLink } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { formatRating, truncateText, cn } from '../../lib/utils';
 
-function ReviewCard({ review, onToggleApproval, isUpdating }) {
+// Helper to get the correct MongoDB ID
+const getReviewId = (review) => {
+    console.group('Getting Review ID');
+    console.log('Full review object:', review);
+    console.log('Available keys:', Object.keys(review));
+    console.log('_id field:', review._id);
+    console.log('id field:', review.id);
+    console.log('hostawayId field:', review.hostawayId);
+    
+    let selectedId;
+    
+    if (review._id) {
+        selectedId = review._id;
+        console.log('Using _id:', selectedId);
+    } else if (review.id) {
+        selectedId = review.id;
+        console.log('Using id (no _id found):', selectedId);
+    } else {
+        selectedId = review.hostawayId;
+        console.error('Using hostawayId as fallback (this will likely fail):', selectedId);
+    }
+    
+    console.groupEnd();
+    return selectedId;
+    };
+
+    function ReviewCard({ review, onToggleApproval, isUpdating }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isTogglingApproval, setIsTogglingApproval] = useState(false);
 
-    // Calculate average rating - use pre-calculated or calculate from categories
+    // Calculate average rating
     const averageRating = review.averageCategoryRating || 
-    (review.reviewCategories?.length
+        (review.reviewCategories?.length
         ? review.reviewCategories.reduce((sum, cat) => sum + (cat.rating || 0), 0) /
-        review.reviewCategories.length
+            review.reviewCategories.length
         : review.reviewCategory?.length
         ? review.reviewCategory.reduce((sum, cat) => sum + (cat.rating || 0), 0) /
-        review.reviewCategory.length
+            review.reviewCategory.length
         : 0);
 
     const displayRating = formatRating(averageRating);
@@ -34,8 +60,16 @@ function ReviewCard({ review, onToggleApproval, isUpdating }) {
     // Handle approval toggle
     const handleToggleApproval = async () => {
         setIsTogglingApproval(true);
-        await onToggleApproval(review.id, !review.displayOnWebsite);
+        try {
+        const reviewId = getReviewId(review);
+        console.log('Calling onToggleApproval with ID:', reviewId);
+        await onToggleApproval(reviewId, !review.isApprovedForPublic);
+        console.log('Approval toggle successful');
+        } catch (error) {
+        console.error('Toggle approval error:', error);
+        } finally {
         setIsTogglingApproval(false);
+        }
     };
 
     return (
@@ -61,8 +95,8 @@ function ReviewCard({ review, onToggleApproval, isUpdating }) {
             </div>
 
             {/* Status Badge */}
-            <Badge variant={review.displayOnWebsite ? 'success' : 'warning'}>
-            {review.displayOnWebsite ? 'Approved' : 'Pending'}
+            <Badge variant={review.isApprovedForPublic ? 'success' : 'warning'}>
+            {review.isApprovedForPublic ? 'Approved' : 'Pending'}
             </Badge>
         </div>
 
@@ -94,9 +128,10 @@ function ReviewCard({ review, onToggleApproval, isUpdating }) {
         </div>
 
         {/* Category Ratings */}
-        {review.reviewCategory && review.reviewCategory.length > 0 && (
+        {(review.reviewCategories || review.reviewCategory) && 
+        (review.reviewCategories || review.reviewCategory).length > 0 && (
             <div className="space-y-2 mb-4">
-            {review.reviewCategory.map((category, index) => (
+            {(review.reviewCategories || review.reviewCategory).map((category, index) => (
                 <div key={index} className="flex items-center justify-between text-sm">
                 <span className="text-neutral-600 capitalize">
                     {category.category.replace(/_/g, ' ')}
@@ -140,7 +175,7 @@ function ReviewCard({ review, onToggleApproval, isUpdating }) {
         {/* Actions */}
         <div className="flex gap-3 pt-4 border-t border-neutral-200">
             <Button
-            variant={review.displayOnWebsite ? 'secondary' : 'primary'}
+            variant={review.isApprovedForPublic ? 'secondary' : 'primary'}
             size="sm"
             onClick={handleToggleApproval}
             disabled={isUpdating || isTogglingApproval}
@@ -148,7 +183,7 @@ function ReviewCard({ review, onToggleApproval, isUpdating }) {
             >
             {isTogglingApproval
                 ? 'Updating...'
-                : review.displayOnWebsite
+                : review.isApprovedForPublic
                 ? 'Remove from Website'
                 : 'Approve for Website'}
             </Button>

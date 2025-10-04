@@ -1,14 +1,13 @@
 import api from '../lib/api';
 
 const reviewService = {
-    //Fetch all reviews from Hostaway
+    // Fetch all reviews from Hostaway
     getHostawayReviews: async (filters = {}) => {
         const response = await api.get('/api/reviews/hostaway', { params: filters });
         return response.data;
     },
 
-    //Get approved reviews for public display
-    //Query params: listingId (optional), limit (optional, default: 10)
+    // Get approved reviews for public display
     getApprovedReviews: async (listingId = null, limit = 10) => {
         const params = {};
         if (listingId) params.listingId = listingId;
@@ -18,24 +17,44 @@ const reviewService = {
         return response.data;
     },
 
-    //Update review approval status
-    //Body: { displayOnWebsite: boolean }
-    updateReviewStatus: async (reviewId, displayOnWebsite) => {
-        const response = await api.patch(`/api/reviews/${reviewId}`, {
-            displayOnWebsite,
-        });
+    // Approve a review for public display - FIXED: Use PATCH instead of POST
+    approveReview: async (reviewId) => {
+        const response = await api.patch(`/api/reviews/${reviewId}/approve`);
         return response.data;
     },
 
-    //Bulk approve multiple reviews
-    //Body: { reviewIds: string[], approvedBy: string }
-    bulkUpdateReviews: async (reviewIds, approvedBy) => {
-        const response = await api.post('/api/reviews/bulk-approve', {
-            reviewIds,
-            approvedBy,
+    // Unapprove/reject a review
+    unapproveReview: async (reviewId) => {
+        try {
+        const response = await api.patch(`/api/reviews/${reviewId}/unapprove`);
+        return response.data;
+        // eslint-disable-next-line no-unused-vars
+        } catch (error) {
+        // Fallback: update isApprovedForPublic directly
+        const response = await api.patch(`/api/reviews/${reviewId}`, {
+            isApprovedForPublic: false,
         });
         return response.data;
-    }
+        }
+    },
+
+    // Update review approval status
+    updateReviewStatus: async (reviewId, shouldApprove) => {
+        if (shouldApprove) {
+        return await reviewService.approveReview(reviewId);
+        } else {
+        return await reviewService.unapproveReview(reviewId);
+        }
+    },
+
+    // Bulk approve multiple reviews
+    bulkUpdateReviews: async (reviewIds, approvedBy = 'manager') => {
+        const response = await api.post('/api/reviews/bulk-approve', {
+        reviewIds,
+        approvedBy,
+        });
+        return response.data;
+    },
 };
 
 export default reviewService;

@@ -21,15 +21,23 @@ function StatsOverview({ reviews = [] }) {
         const total = reviews.length;
 
         // Approved vs Pending
-        const approved = reviews.filter((r) => r.displayOnWebsite).length;
+        const approved = reviews.filter((r) => r.isApprovedForPublic).length;
         const pending = total - approved;
 
         // Average rating
         const ratingsSum = reviews.reduce((sum, review) => {
-        if (!review.reviewCategory || review.reviewCategory.length === 0) return sum;
-        const avgRating = review.reviewCategory.reduce((acc, cat) => acc + (cat.rating || 0), 0) / review.reviewCategory.length;
-        return sum + avgRating;
-        }, 0);
+            // Use pre-calculated average if available
+            if (review.averageCategoryRating) {
+                return sum + review.averageCategoryRating;
+            }
+            
+            // Otherwise calculate from categories
+            const categories = review.reviewCategories || review.reviewCategory;
+            if (!categories || categories.length === 0) return sum;
+            
+            const avgRating = categories.reduce((acc, cat) => acc + (cat.rating || 0), 0) / categories.length;
+            return sum + avgRating;
+            }, 0);
         const averageRating = ratingsSum / reviews.length;
 
         // Channel breakdown

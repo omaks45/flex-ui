@@ -96,37 +96,41 @@ export function useFilters(reviews = []) {
         if (filters.rating !== 'all') {
         const ratingThreshold = parseFloat(filters.rating);
         filtered = filtered.filter((review) => {
-            const avgRating = calculateAverageRating(review.reviewCategory);
+            const avgRating = calculateAverageRating(
+                review.reviewCategories, 
+                review.reviewCategory,
+                review.averageCategoryRating
+                );
             return avgRating >= ratingThreshold;
         });
         }
 
-        // Status filter
+       // Status filter
         if (filters.status !== 'all') {
-        const isApproved = filters.status === 'approved';
-        filtered = filtered.filter((review) => review.displayOnWebsite === isApproved);
+            const isApproved = filters.status === 'approved';
+            filtered = filtered.filter((review) => review.isApprovedForPublic === isApproved);
         }
 
         // Date range filter
         if (filters.dateRange.start || filters.dateRange.end) {
-        filtered = filtered.filter((review) => {
-            if (!review.submittedAt) return false;
-            
-            try {
-            const reviewDate = parseISO(review.submittedAt);
-            
-            if (filters.dateRange.start && isBefore(reviewDate, filters.dateRange.start)) {
-                return false;
-            }
-            if (filters.dateRange.end && isAfter(reviewDate, filters.dateRange.end)) {
-                return false;
-            }
-            return true;
-            } catch (error) {
-            console.error('Error parsing date:', error);
-            return false;
-            }
-        });
+
+            filtered = filtered.filter((review) => {
+                if (!review.submittedAt) return false;
+                    try {
+                        const reviewDate = parseISO(review.submittedAt);
+                        
+                        if (filters.dateRange.start && isBefore(reviewDate, filters.dateRange.start)) {
+                            return false;
+                        }
+                        if (filters.dateRange.end && isAfter(reviewDate, filters.dateRange.end)) {
+                            return false;
+                        }
+                        return true;
+                    } catch (error) {
+                        console.error('Error parsing date:', error);
+                        return false;
+                    }
+            });
         }
 
         // Sorting
@@ -137,9 +141,11 @@ export function useFilters(reviews = []) {
             case 'date-asc':
             return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
             case 'rating-desc':
-            return calculateAverageRating(b.reviewCategory) - calculateAverageRating(a.reviewCategory);
+            return calculateAverageRating(b.reviewCategories, b.reviewCategory, b.averageCategoryRating) - 
+                calculateAverageRating(a.reviewCategories, a.reviewCategory, a.averageCategoryRating);
             case 'rating-asc':
-            return calculateAverageRating(a.reviewCategory) - calculateAverageRating(b.reviewCategory);
+            return calculateAverageRating(a.reviewCategories, a.reviewCategory, a.averageCategoryRating) - 
+                calculateAverageRating(b.reviewCategories, b.reviewCategory, b.averageCategoryRating);
             default:
             return 0;
         }
@@ -159,11 +165,17 @@ export function useFilters(reviews = []) {
 }
 
 // Helper function to calculate average rating
-function calculateAverageRating(reviewCategory) {
-    if (!reviewCategory || !Array.isArray(reviewCategory) || reviewCategory.length === 0) {
+function calculateAverageRating(reviewCategories, reviewCategory, preCalculated) {
+    // Use pre-calculated if available
+    if (preCalculated) return preCalculated;
+    
+    // Try reviewCategories first (your API structure)
+    const categories = reviewCategories || reviewCategory;
+    
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
         return 0;
     }
     
-    const sum = reviewCategory.reduce((acc, cat) => acc + (cat.rating || 0), 0);
-    return sum / reviewCategory.length;
+    const sum = categories.reduce((acc, cat) => acc + (cat.rating || 0), 0);
+    return sum / categories.length;
 }
