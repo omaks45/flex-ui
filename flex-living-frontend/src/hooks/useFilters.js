@@ -7,15 +7,15 @@ export function useFilters(reviews = []) {
         property: 'all',
         channel: 'all',
         rating: 'all',
-        status: 'all', // approved, pending, all
+        status: 'all',
         dateRange: {
         start: null,
         end: null,
         },
-        sortBy: 'date-desc', // date-desc, date-asc, rating-desc, rating-asc
+        sortBy: 'date-desc',
     });
 
-  // Update individual filter
+    // Update individual filter
     const updateFilter = (key, value) => {
         setFilters((prev) => ({
         ...prev,
@@ -46,7 +46,8 @@ export function useFilters(reviews = []) {
 
     // Get unique values for filter dropdowns
     const filterOptions = useMemo(() => {
-        if (!reviews || reviews.length === 0) {
+        // Ensure reviews is an array before processing
+        if (!Array.isArray(reviews) || reviews.length === 0) {
         return {
             properties: [],
             channels: [],
@@ -64,7 +65,10 @@ export function useFilters(reviews = []) {
 
     // Apply filters to reviews
     const filteredReviews = useMemo(() => {
-        if (!reviews || reviews.length === 0) return [];
+        // Ensure reviews is an array
+        if (!Array.isArray(reviews) || reviews.length === 0) {
+        return [];
+        }
 
         let filtered = [...reviews];
 
@@ -107,15 +111,21 @@ export function useFilters(reviews = []) {
         if (filters.dateRange.start || filters.dateRange.end) {
         filtered = filtered.filter((review) => {
             if (!review.submittedAt) return false;
+            
+            try {
             const reviewDate = parseISO(review.submittedAt);
             
             if (filters.dateRange.start && isBefore(reviewDate, filters.dateRange.start)) {
-            return false;
+                return false;
             }
             if (filters.dateRange.end && isAfter(reviewDate, filters.dateRange.end)) {
-            return false;
+                return false;
             }
             return true;
+            } catch (error) {
+            console.error('Error parsing date:', error);
+            return false;
+            }
         });
         }
 
@@ -123,9 +133,9 @@ export function useFilters(reviews = []) {
         filtered.sort((a, b) => {
         switch (filters.sortBy) {
             case 'date-desc':
-            return new Date(b.submittedAt) - new Date(a.submittedAt);
+            return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
             case 'date-asc':
-            return new Date(a.submittedAt) - new Date(b.submittedAt);
+            return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
             case 'rating-desc':
             return calculateAverageRating(b.reviewCategory) - calculateAverageRating(a.reviewCategory);
             case 'rating-asc':
@@ -146,11 +156,13 @@ export function useFilters(reviews = []) {
         filterOptions,
         filteredReviews,
     };
-    }
+}
 
-    // Helper function to calculate average rating
-    function calculateAverageRating(reviewCategory) {
-    if (!reviewCategory || reviewCategory.length === 0) return 0;
+// Helper function to calculate average rating
+function calculateAverageRating(reviewCategory) {
+    if (!reviewCategory || !Array.isArray(reviewCategory) || reviewCategory.length === 0) {
+        return 0;
+    }
     
     const sum = reviewCategory.reduce((acc, cat) => acc + (cat.rating || 0), 0);
     return sum / reviewCategory.length;
