@@ -197,7 +197,7 @@ function PropertyPage() {
         <footer className="border-t border-neutral-200 mt-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center text-neutral-600 text-sm">
-                © 2024 The Flex. All rights reserved.
+                © 2025 The Flex. All rights reserved.
             </div>
             </div>
         </footer>
