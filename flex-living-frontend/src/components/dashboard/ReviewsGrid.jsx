@@ -35,14 +35,19 @@ function ReviewsGrid({ reviews, onToggleApproval, isUpdating }) {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {reviews.map((review) => (
+        {reviews.map((review) => {
+            // Create unique key that includes approval status
+            const reviewKey = `${review._id || review.id || review.hostawayId}-${review.isApprovedForPublic}`;
+            
+            return (
             <ReviewCard
-            key={review.id}
-            review={review}
-            onToggleApproval={onToggleApproval}
-            isUpdating={isUpdating}
+                key={reviewKey}
+                review={review}
+                onToggleApproval={onToggleApproval}
+                isUpdating={isUpdating}
             />
-        ))}
+            );
+        })}
         </div>
     );
 }
