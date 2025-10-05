@@ -1,12 +1,11 @@
 import axios from 'axios';
 
-    // Create axios instance with base configuration
-    const api = axios.create({
+const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'https://flex-living-hmhm.onrender.com',
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000, // 10 seconds
+    timeout: 30000, // Increase to 30 seconds (was 10000)
     });
 
     // Request interceptor
@@ -28,15 +27,16 @@ import axios from 'axios';
         return response;
     },
     (error) => {
-        if (error.response) {
-        console.error('API Error Response:', {
+        if (error.code === 'ECONNABORTED') {
+        console.error('Request timeout - API took too long to respond');
+        } else if (error.response) {
+        console.error('API Error:', {
             status: error.response.status,
             url: error.config.url,
-            method: error.config.method,
             data: error.response.data,
         });
         } else if (error.request) {
-        console.error('Network Error:', error.message);
+        console.error('Network Error - No response received:', error.message);
         } else {
         console.error('Error:', error.message);
         }

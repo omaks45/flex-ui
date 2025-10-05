@@ -7,8 +7,10 @@ export function useReviews(filters = {}) {
         queryKey: ['reviews', filters],
         queryFn: () => reviewService.getHostawayReviews(filters),
         staleTime: 5 * 60 * 1000, // 5 minutes
+        retry: 3, // Retry 3 times on failure
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
         onError: (error) => {
-        toast.error('Failed to fetch reviews');
+        toast.error('Failed to fetch reviews. Please check your connection.');
         console.error('Error fetching reviews:', error);
         },
     });
